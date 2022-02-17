@@ -24,14 +24,20 @@ ifndef BUNDLEDOMAIN
 $(error BUNDLEDOMAIN not defined)
 endif
 
-
-# defaults
-BUNDLEID?=	$(BUNDLEDOMAIN).kext.$(KEXTNAME)
-KEXTBUNDLE?=	$(KEXTNAME).kext
-KEXTMACHO?=	$(KEXTNAME).out
-ARCHFLAGS?=	-arch x86_64
-#ARCHFLAGS?=	-arch x86_64 -arch i386
-PREFIX?=	/Library/Extensions
+#defaults
+SIGNCERT?=				foozlefairy@gmail.com
+COPYRIGHT?=				"Copyright © 2022 somestupidgirl,  All rights reserved."
+KEXTNAME?=				BSDKextLog
+KEXTVERSION?=			0.0.1
+KEXTBUILD?=				0
+BUNDLEDOMAIN?=			com.stupid.utils
+BUNDLEID?=				$(BUNDLEDOMAIN).$(KEXTNAME)
+KEXTBUNDLE?=			$(KEXTNAME).kext
+KEXTMACHO?=				$(KEXTNAME).out
+ARCHFLAGS?=				-arch x86_64
+DEVELOPER_DIR?=			/Applications/Xcode.app/Contents/Developer
+PREFIX?=				/Library/Extensions
+MACOSX_VERSION_MIN?= 	11.6
 
 #
 # Set default macOS SDK
@@ -53,23 +59,21 @@ CODESIGN=	$(shell xcrun -find -sdk $(SDKROOT) codesign)
 # Since XCode use intermediate objects  which causes symbol duplicated
 #
 CPPFLAGS+=	-DKERNEL \
-		-DKERNEL_PRIVATE \
-		-DDRIVER_PRIVATE \
-		-DAPPLE \
-		-DNeXT \
-		-I$(SDKROOT)/System/Library/Frameworks/Kernel.framework/Headers \
-		-I$(SDKROOT)/System/Library/Frameworks/Kernel.framework/PrivateHeaders \
-		-D__kext_makefile__
+			-DKERNEL_PRIVATE \
+			-DDRIVER_PRIVATE \
+			-DAPPLE \
+			-DNeXT \
+			-D__kext_makefile__
 
 #
 # Convenience defines
 # BUNDLEID macro will be used in KMOD_EXPLICIT_DECL
 #
 CPPFLAGS+=	-DKEXTNAME_S=\"$(KEXTNAME)\"		\
-		-DKEXTVERSION_S=\"$(KEXTVERSION)\"	\
-		-DKEXTBUILD_S=\"$(KEXTBUILD)\"		\
-		-DBUNDLEID_S=\"$(BUNDLEID)\"		\
-		-DBUNDLEID=$(BUNDLEID)
+			-DKEXTVERSION_S=\"$(KEXTVERSION)\"	\
+			-DKEXTBUILD_S=\"$(KEXTBUILD)\"		\
+			-DBUNDLEID_S=\"$(BUNDLEID)\"		\
+			-DBUNDLEID=$(BUNDLEID)
 
 TIME_STAMP:=	$(shell date +'%Y/%m/%d\ %H:%M:%S%z')
 CPPFLAGS+=	-D__TS__=\"$(TIME_STAMP)\"
@@ -80,35 +84,40 @@ CPPFLAGS+=	-D__TS__=\"$(TIME_STAMP)\"
 ifdef MACOSX_VERSION_MIN
 CFLAGS+=	-mmacosx-version-min=$(MACOSX_VERSION_MIN)
 else
-CFLAGS+=	-mmacosx-version-min=10.4
+CFLAGS+=	-mmacosx-version-min=11.3
 endif
 CFLAGS+=	$(SDKFLAGS) \
-		$(ARCHFLAGS) \
-		-x c \
-		-std=c99 \
-		-nostdinc \
-		-fno-builtin \
-		-fno-common \
-		-mkernel
+			$(ARCHFLAGS) \
+			-x c \
+			-std=c99 \
+			-nostdinc \
+			-fno-builtin \
+			-fno-common \
+			-mkernel \
+			-IMacKernelSDK/Headers
 
 # warnings
-CFLAGS+=	-Wall -Wextra -Wno-unused-function -Werror
+CFLAGS+=	-Wall -Wextra -Werror -Wno-unused-function -Wno-vla -Wno-nullability-completeness
 
 # linker flags
 ifdef MACOSX_VERSION_MIN
 LDFLAGS+=	-mmacosx-version-min=$(MACOSX_VERSION_MIN)
 else
-LDFLAGS+=	-mmacosx-version-min=10.4
+LDFLAGS+=	-mmacosx-version-min=11.3
 endif
 LDFLAGS+=	$(SDKFLAGS) \
-		$(ARCHFLAGS) \
-		-nostdlib \
-		-Xlinker -kext \
-		-Xlinker -object_path_lto \
-		-Xlinker -export_dynamic
+			$(ARCHFLAGS) \
+			-nostdlib \
+			-Xlinker -kext \
+			-Xlinker -object_path_lto kext/bsd_kext_log.o \
+			-Xlinker -object_path_lto kext/kauth.o \
+			-Xlinker -object_path_lto kext/log_kctl.o \
+			-Xlinker -object_path_lto kext/log_sysctl.o \
+			-Xlinker -object_path_lto kext/utils.o \
+			-Xlinker -export_dynamic
 
 # libraries
-LIBS+=		-lkmod
+LIBS+=		-LMacKernelSDK/Library/x86_64 -lkmod
 #LIBS+=		-lkmodc++
 LIBS+=		-lcc_kext
 
@@ -200,6 +209,7 @@ unload:
 install: $(KEXTBUNDLE) uninstall
 	test -d "$(PREFIX)"
 	sudo cp -r $< "$(PREFIX)/$<"
+	sudo chmod -R 755 "$(PREFIX)/$<"
 	sudo chown -R root:wheel "$(PREFIX)/$<"
 
 uninstall:
