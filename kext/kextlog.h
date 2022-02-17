@@ -10,7 +10,11 @@
 #include <stdint.h>
 #include <sys/socket.h>
 
-#define KEXTLOG_KCTL_NAME           "net.trineo.kext.bsd_kext_log.kctl"
+#ifndef BUNDLEID_S
+#define BUNDLEID_S                  "com.stupid.logger.BSDKextLog"
+#endif
+
+#define KEXTLOG_KCTL_NAME           BUNDLEID_S ".kctl"
 #define KEXTLOG_KCTL_SOCKTYPE       SOCK_DGRAM
 
 #define KEXTLOG_LEVEL_TRACE         0

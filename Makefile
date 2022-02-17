@@ -2,35 +2,13 @@
 # macOS generic kernel extension Makefile
 #
 
-include Makefile.inc
-
-#
-# Check mandatory vars
-#
-ifndef KEXTNAME
-$(error KEXTNAME not defined)
-endif
-
-ifndef KEXTVERSION
-$(error KEXTVERSION not defined)
-endif
-
-ifndef KEXTBUILD
-# [assume] zero indicates no build number
-KEXTBUILD:=	0
-endif
-
-ifndef BUNDLEDOMAIN
-$(error BUNDLEDOMAIN not defined)
-endif
-
 #defaults
 SIGNCERT?=				foozlefairy@gmail.com
 COPYRIGHT?=				"Copyright © 2022 somestupidgirl,  All rights reserved."
 KEXTNAME?=				BSDKextLog
 KEXTVERSION?=			0.0.1
 KEXTBUILD?=				0
-BUNDLEDOMAIN?=			com.stupid.utils
+BUNDLEDOMAIN?=			com.stupid.logger
 BUNDLEID?=				$(BUNDLEDOMAIN).$(KEXTNAME)
 KEXTBUNDLE?=			$(KEXTNAME).kext
 KEXTMACHO?=				$(KEXTNAME).out
@@ -97,7 +75,7 @@ CFLAGS+=	$(SDKFLAGS) \
 			-IMacKernelSDK/Headers
 
 # warnings
-CFLAGS+=	-Wall -Wextra -Werror -Wno-unused-function -Wno-vla -Wno-nullability-completeness
+CFLAGS+=	-Wall -Wextra -Wno-unused-function -Wno-vla -Wno-nullability-completeness
 
 # linker flags
 ifdef MACOSX_VERSION_MIN
